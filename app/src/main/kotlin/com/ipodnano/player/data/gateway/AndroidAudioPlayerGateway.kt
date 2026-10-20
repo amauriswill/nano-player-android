@@ -19,6 +19,14 @@ class AndroidAudioPlayerGateway(
     private var activePfd: ParcelFileDescriptor? = null
     private val notificationHelper = MusicNotificationHelper(context)
     private var currentPlayingTrack: Track? = null
+    private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private val focusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_LOSS,
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> pause()
+            AudioManager.AUDIOFOCUS_GAIN -> resume()
+        }
+    }
 
     var isHeadsetConnected: Boolean = true
     override fun play(track: Track) {
@@ -37,6 +45,22 @@ class AndroidAudioPlayerGateway(
             } else {
                 @Suppress("DEPRECATION")
                 player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val focusRequest = android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build()
+                    )
+                    .setOnAudioFocusChangeListener(focusChangeListener)
+                    .build()
+                audioManager.requestAudioFocus(focusRequest)
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.requestAudioFocus(focusChangeListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
             }
 
             var dataSourceSet = false
