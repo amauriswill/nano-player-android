@@ -293,9 +293,12 @@
     }
 
     .menu-item span.label {
+      flex: 1;
+      min-width: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin-right: 8px;
     }
 
     .menu-item .chevron {
@@ -1413,10 +1416,14 @@
           });
           const albums = Array.from(uniqueAlbumsMap.values()).sort();
           return albums.map(album => {
-            const albumTracks = this.tracks.filter(t => (t.album || 'Álbum desconocido').trim().toLowerCase() === album.toLowerCase());
+            const seenTracks = new Set();
+            this.tracks.filter(t => (t.album || 'Álbum desconocido').trim().toLowerCase() === album.toLowerCase()).forEach(t => {
+              seenTracks.add((t.uri || t.title).toLowerCase());
+            });
+            const count = seenTracks.size;
             return {
               label: album,
-              badge: `${albumTracks.length} song${albumTracks.length > 1 ? 's' : ''}`,
+              badge: `${count} song${count > 1 ? 's' : ''}`,
               action: () => {
                 this.selectedAlbum = album;
                 this.pushMenu('ALBUM_SONGS');
