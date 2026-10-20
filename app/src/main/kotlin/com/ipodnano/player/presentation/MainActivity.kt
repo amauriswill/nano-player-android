@@ -257,7 +257,8 @@ class MainActivity : Activity(), IpodContract.View {
             settings.setSupportZoom(false)
             settings.builtInZoomControls = false
             settings.displayZoomControls = false
-            settings.cacheMode = WebSettings.LOAD_DEFAULT
+            settings.cacheMode = WebSettings.LOAD_NO_CACHE
+            clearCache(true)
 
             addJavascriptInterface(AndroidNativeBridge(), "AndroidBridge")
 

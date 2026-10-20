@@ -14,3 +14,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "ipod-nano-android"
 include(":app")
+include(":shared")
