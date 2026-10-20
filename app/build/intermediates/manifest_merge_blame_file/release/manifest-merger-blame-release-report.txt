@@ -1,0 +1,89 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.ipodnano.player"
+4    android:versionCode="2"
+5    android:versionName="2.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="21"
+9        android:targetSdkVersion="34" />
+10
+11    <supports-screens
+11-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:4:5-9:37
+12        android:anyDensity="true"
+12-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:9:9-34
+13        android:largeScreens="true"
+13-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:7:9-36
+14        android:normalScreens="true"
+14-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:6:9-37
+15        android:smallScreens="true"
+15-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:5:9-36
+16        android:xlargeScreens="true" />
+16-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:8:9-37
+17
+18    <!-- Network permissions for album artwork download -->
+19    <uses-permission android:name="android.permission.INTERNET" />
+19-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:12:5-67
+19-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:12:22-64
+20    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+20-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:13:5-79
+20-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:13:22-76
+21
+22    <!-- Storage and Audio permissions for reading device music -->
+23    <uses-permission
+23-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:16:5-107
+24        android:name="android.permission.READ_EXTERNAL_STORAGE"
+24-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:16:22-77
+25        android:maxSdkVersion="32" />
+25-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:16:78-104
+26    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+26-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:17:5-75
+26-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:17:22-72
+27    <uses-permission android:name="android.permission.WAKE_LOCK" />
+27-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:18:5-68
+27-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:18:22-65
+28    <uses-permission android:name="android.permission.VIBRATE" />
+28-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:19:5-66
+28-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:19:22-63
+29
+30    <application
+30-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:21:5-39:19
+31        android:allowBackup="true"
+31-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:22:9-35
+32        android:extractNativeLibs="true"
+33        android:hardwareAccelerated="true"
+33-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:26:9-43
+34        android:icon="@android:drawable/ic_media_play"
+34-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:23:9-55
+35        android:label="@string/app_name"
+35-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:24:9-41
+36        android:largeHeap="true"
+36-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:27:9-33
+37        android:supportsRtl="true"
+37-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:28:9-35
+38        android:theme="@style/Theme.IpodNano" >
+38-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:25:9-46
+39        <activity
+39-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:29:9-38:20
+40            android:name="com.ipodnano.player.presentation.MainActivity"
+40-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:30:13-54
+41            android:configChanges="orientation|keyboardHidden|screenSize"
+41-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:33:13-74
+42            android:exported="true"
+42-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:31:13-36
+43            android:screenOrientation="portrait" >
+43-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:32:13-49
+44            <intent-filter>
+44-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:34:13-37:29
+45                <action android:name="android.intent.action.MAIN" />
+45-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:35:17-69
+45-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:35:25-66
+46
+47                <category android:name="android.intent.category.LAUNCHER" />
+47-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:36:17-77
+47-->C:\Users\Amauris Willmore\Documents\ipod-nano-android\app\src\main\AndroidManifest.xml:36:27-74
+48            </intent-filter>
+49        </activity>
+50    </application>
+51
+52</manifest>

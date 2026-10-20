@@ -1,0 +1,10 @@
+{
+  "name": "Nano Player",
+  "short_name": "Nano",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#141418",
+  "orientation": "portrait",
+  "description": "Minimalist touch music player replica of the iPod Nano"
+}

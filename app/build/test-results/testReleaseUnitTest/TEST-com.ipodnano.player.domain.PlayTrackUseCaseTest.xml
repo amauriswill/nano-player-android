@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.ipodnano.player.domain.PlayTrackUseCaseTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-10-19T21:00:04" hostname="DESKTOP-13LT0LE" time="0.004">
+  <properties/>
+  <testcase name="invoke should delegate play to audio player gateway" classname="com.ipodnano.player.domain.PlayTrackUseCaseTest" time="0.004"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

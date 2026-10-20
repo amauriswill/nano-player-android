@@ -1,0 +1,11 @@
+R_DEF: Internal format may change without notice
+local
+color ipod_center_btn
+color ipod_chassis
+color ipod_highlight_blue
+color ipod_screen_bezel
+color ipod_wheel
+id ipod_screen_view
+layout activity_main
+string app_name
+style Theme.IpodNano

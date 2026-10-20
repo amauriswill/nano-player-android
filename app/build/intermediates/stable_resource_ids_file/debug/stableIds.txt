@@ -1,0 +1,9 @@
+com.ipodnano.player.debug:string/app_name = 0x7f040000
+com.ipodnano.player.debug:style/Theme.IpodNano = 0x7f050000
+com.ipodnano.player.debug:layout/activity_main = 0x7f030000
+com.ipodnano.player.debug:id/ipod_screen_view = 0x7f020000
+com.ipodnano.player.debug:color/ipod_screen_bezel = 0x7f010003
+com.ipodnano.player.debug:color/ipod_chassis = 0x7f010001
+com.ipodnano.player.debug:color/ipod_wheel = 0x7f010004
+com.ipodnano.player.debug:color/ipod_highlight_blue = 0x7f010002
+com.ipodnano.player.debug:color/ipod_center_btn = 0x7f010000
