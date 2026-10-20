@@ -1628,20 +1628,22 @@
 
       nextTrack() {
         this.audio.playClickSound();
-        if (!this.currentTrack) return;
-        const idx = this.tracks.findIndex(t => t.id === this.currentTrack.id);
+        if (!this.tracks || this.tracks.length === 0) return;
+        let idx = this.currentTrack ? this.tracks.findIndex(t => t.id === this.currentTrack.id || t.uri === this.currentTrack.uri) : -1;
+        if (idx === -1) idx = 0;
         const next = this.tracks[(idx + 1) % this.tracks.length];
         this.playTrack(next);
       }
 
       prevTrack() {
         this.audio.playClickSound();
-        if (!this.currentTrack) return;
+        if (!this.tracks || this.tracks.length === 0) return;
         if (this.audio.position > 3) {
           this.audio.seek(0);
           return;
         }
-        const idx = this.tracks.findIndex(t => t.id === this.currentTrack.id);
+        let idx = this.currentTrack ? this.tracks.findIndex(t => t.id === this.currentTrack.id || t.uri === this.currentTrack.uri) : -1;
+        if (idx === -1) idx = 0;
         const prev = this.tracks[(idx - 1 + this.tracks.length) % this.tracks.length];
         this.playTrack(prev);
       }
@@ -1742,14 +1744,14 @@
           this.menuContainer.style.display = 'none';
           this.npContainer.style.display = 'flex';
           this.aboutContainer.style.display = 'none';
-          this.statusTitle.textContent = 'Now Playing';
+          this.statusTitle.textContent = this.currentTrack && this.currentTrack.album ? this.currentTrack.album : 'Now Playing';
 
           if (this.currentTrack) {
             this.npTitle.textContent = this.currentTrack.title || 'Sin título';
             this.npArtist.textContent = this.currentTrack.artist || 'Artista desconocido';
             this.npAlbum.textContent = this.currentTrack.album || 'Álbum desconocido';
             const coverVal = this.currentTrack.cover;
-            if (coverVal && coverVal !== 'null' && coverVal !== '' && coverVal !== 'undefined') {
+            if (coverVal && coverVal !== 'null' && coverVal !== '' && coverVal !== 'undefined' && coverVal !== 'false') {
               this.npCover.style.display = 'block';
               this.npGenericCover.style.display = 'none';
               this.npCover.src = coverVal;
@@ -1757,11 +1759,13 @@
               this.npCover.style.display = 'none';
               this.npGenericCover.style.display = 'flex';
             }
-            this.npIndex.textContent = `${idx + 1} of ${this.tracks.length}`;
+            const idx = this.tracks.findIndex(t => t.id === this.currentTrack.id || t.uri === this.currentTrack.uri);
+            this.npIndex.textContent = `${Math.max(0, idx) + 1} of ${this.tracks.length}`;
             this.onTick();
           }
         }
       }
+
 
       initTouchListeners() {
         this.btnBack.onclick = () => this.popMenu();
