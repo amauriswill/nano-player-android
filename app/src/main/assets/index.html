@@ -1456,10 +1456,13 @@
             seen.add(key);
             return true;
           });
-          return sortTracks(filtered).map(t => ({
-            label: `${t.title || 'Sin título'} - ${t.artist || 'Artista desconocido'}`,
-            action: () => this.playTrack(t)
-          }));
+          return sortTracks(filtered).map(t => {
+            const prefix = (t.trackNumber && t.trackNumber > 0) ? `${t.trackNumber}. ` : '';
+            return {
+              label: `${prefix}${t.title || 'Sin título'} - ${t.artist || 'Artista desconocido'}`,
+              action: () => this.playTrack(t)
+            };
+          });
         }
         if (this.currentMenu === 'SETTINGS') {
           const repeatText = this.repeatMode === 'ALL' ? 'Todo' : (this.repeatMode === 'ONE' ? 'Esta' : 'Off');
