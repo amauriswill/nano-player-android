@@ -1,10 +1,6 @@
 [
     {
-        "merged": "com.ipodnano.player.app-merged_res-4:/layout_activity_main.xml.flat",
-        "source": "com.ipodnano.player.app-main-6:/layout/activity_main.xml"
-    },
-    {
-        "merged": "C:\\Users\\Amauris Willmore\\.gradle\\daemon\\8.4\\com.ipodnano.player.app-merged_res-4:\\layout_activity_main.xml.flat",
-        "source": "C:\\Users\\Amauris Willmore\\.gradle\\daemon\\8.4\\com.ipodnano.player.app-main-6:\\layout\\activity_main.xml"
+        "merged": "com.ipodnano.player.app-merged_res-9:/layout_activity_main.xml.flat",
+        "source": "com.ipodnano.player.app-main-11:/layout/activity_main.xml"
     }
 ]

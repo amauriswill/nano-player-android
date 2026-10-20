@@ -148,7 +148,7 @@
       top: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
-      max-width: 58%;
+      max-width: 42%;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -293,9 +293,12 @@
     }
 
     .menu-item span.label {
+      flex: 1;
+      min-width: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      margin-right: 8px;
     }
 
     .menu-item .chevron {
@@ -432,9 +435,9 @@
     }
 
     .album-art-square {
-      width: 112px;
-      height: 112px;
-      border-radius: 4px;
+      width: 140px;
+      height: 140px;
+      border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       object-fit: cover;
       background: #1e293b;
@@ -442,14 +445,19 @@
       display: block;
     }
 
-    .album-art-square.generic-cover {
+    .generic-cover-box {
+      width: 140px;
+      height: 140px;
+      border-radius: 12px;
       display: none;
       align-items: center;
       justify-content: center;
       background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      color: #94a3b8;
-      font-size: 48px;
-      border: 1px solid var(--art-border);
+      color: #3b82f6;
+      font-size: 52px;
+      border: 1px solid #334155;
+      box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(0,0,0,0.15);
+      flex-shrink: 0;
     }
 
     .track-meta-col {
@@ -592,20 +600,21 @@
 
     .volume-slider {
       flex: 1;
-      height: 8px;
+      height: 9px;
       background: var(--progress-bg);
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       position: relative;
       touch-action: none;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.12);
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
+      overflow: visible;
     }
 
     .volume-fill {
       height: 100%;
       width: 70%;
-      background: var(--subtext);
-      border-radius: 4px;
+      background: var(--progress-fill);
+      border-radius: 3px;
       position: relative;
       pointer-events: none;
     }
@@ -613,19 +622,21 @@
     .volume-fill::after {
       content: '';
       position: absolute;
-      right: -6px;
+      right: -7px;
       top: 50%;
       transform: translateY(-50%) scale(1);
-      width: 14px;
-      height: 14px;
+      width: 15px;
+      height: 15px;
       border-radius: 50%;
       background: #ffffff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+      border: 1.5px solid #cbd5e1;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.25);
       transition: transform 120ms var(--ease-spring);
     }
 
     .volume-slider:active .volume-fill::after {
-      transform: translateY(-50%) scale(1.3);
+      transform: translateY(-50%) scale(1.25);
+      border-color: #3b82f6;
     }
 
     .vol-repeat-btn {
@@ -717,9 +728,10 @@
             src="covers/demondays.jpg" 
             alt="Album Cover"
           >
-          <div class="album-art-square generic-cover" id="np-generic-cover" title="Sin carátula">
+          <div class="generic-cover-box" id="np-generic-cover" title="Sin carátula" style="display: none;">
             <i class="ri-disc-line"></i>
           </div>
+          <div class="track-meta-col">
             <div class="track-title" id="np-title">-</div>
             <div class="track-artist" id="np-artist">-</div>
             <div class="track-album" id="np-album">-</div>
@@ -771,35 +783,35 @@
         <i class="ri-disc-fill"></i>
       </div>
       <div class="about-title">Nano Player</div>
-      <div class="about-version">v2.0 Touch Edition</div>
+      <div class="about-version">v2.0 Touch Edition (Music-Exclusive)</div>
       <div class="about-desc">
-        Reproductor minimalista inspirado en el iPod Nano clásico, rediseñado para una experiencia táctil fluida, borderless y de alta fidelidad.
+        Reproductor de música local de alta fidelidad inspirado en el legendario iPod Nano. Diseñado con Clean Architecture, tipografía SF Pro y controles táctiles de precisión.
       </div>
 
       <div class="about-card">
         <div class="about-card-row">
+          <span>Autor / Desarrollador</span>
+          <strong>Amauris Willmore</strong>
+        </div>
+        <div class="about-card-row">
           <span>Arquitectura</span>
-          <strong>Clean Architecture (Kotlin)</strong>
+          <strong>Clean Architecture (Kotlin / PWA)</strong>
         </div>
         <div class="about-card-row">
           <span>Salida de Audio</span>
-          <strong>Jack 3.5mm / USB Audio</strong>
+          <strong>Jack 3.5mm / Bluetooth A2DP</strong>
         </div>
         <div class="about-card-row">
-          <span>Protección Altavoz</span>
-          <strong>Activa al desconectar</strong>
+          <span>Seguridad Audio</span>
+          <strong>Becoming-Noisy Auto-Pause</strong>
         </div>
         <div class="about-card-row">
-          <span>Tipografía</span>
-          <strong>SF Pro Display (Subpixel)</strong>
-        </div>
-        <div class="about-card-row">
-          <span>Memoria</span>
-          <strong>Optimizada para larga jornada</strong>
+          <span>Tipografía & UI</span>
+          <strong>SF Pro Display & RemixIcon</strong>
         </div>
         <div class="about-card-row">
           <span>Compatibilidad</span>
-          <strong>Android 1.0 a Android 14+</strong>
+          <strong>Android API 1 al 34+</strong>
         </div>
       </div>
     </div>
@@ -1353,14 +1365,42 @@
             { label: 'Settings', action: () => this.pushMenu('SETTINGS') }
           ];
         }
+        const sortTracks = (arr) => {
+          return arr.sort((a, b) => {
+            const ta = Number(a.trackNumber) || 0;
+            const tb = Number(b.trackNumber) || 0;
+            if (ta > 0 && tb > 0 && ta !== tb) return ta - tb;
+            if (ta > 0 && tb === 0) return -1;
+            if (ta === 0 && tb > 0) return 1;
+            return (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base', numeric: true });
+          });
+        };
+
         if (this.currentMenu === 'SONGS') {
-          return this.tracks.map(t => ({
-            label: `${t.title} - ${t.artist}`,
+          const seen = new Set();
+          const uniqueTracks = [];
+          this.tracks.forEach(t => {
+            const key = (t.uri || `${t.title}-${t.artist}`).toLowerCase();
+            if (!seen.has(key)) {
+              seen.add(key);
+              uniqueTracks.push(t);
+            }
+          });
+          return sortTracks(uniqueTracks).map(t => ({
+            label: `${t.title || 'Sin título'} - ${t.artist || 'Artista desconocido'}`,
             action: () => this.playTrack(t)
           }));
         }
         if (this.currentMenu === 'ARTISTS') {
-          const artists = [...new Set(this.tracks.map(t => t.artist))].sort();
+          const uniqueArtistsMap = new Map();
+          this.tracks.forEach(t => {
+            const art = (t.artist || 'Artista desconocido').trim();
+            const key = art.toLowerCase();
+            if (!uniqueArtistsMap.has(key)) {
+              uniqueArtistsMap.set(key, art);
+            }
+          });
+          const artists = Array.from(uniqueArtistsMap.values()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
           return artists.map(a => ({
             label: a,
             action: () => {
@@ -1370,18 +1410,37 @@
           }));
         }
         if (this.currentMenu === 'ARTIST_SONGS') {
-          return this.tracks.filter(t => t.artist === this.selectedArtist).map(t => ({
-            label: t.title,
+          const seen = new Set();
+          const filtered = this.tracks.filter(t => (t.artist || '').trim().toLowerCase() === (this.selectedArtist || '').trim().toLowerCase()).filter(t => {
+            const key = (t.uri || t.title).toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          return sortTracks(filtered).map(t => ({
+            label: t.title || 'Sin título',
             action: () => this.playTrack(t)
           }));
         }
         if (this.currentMenu === 'ALBUMS') {
-          const albums = [...new Set(this.tracks.map(t => t.album))].sort();
+          const uniqueAlbumsMap = new Map();
+          this.tracks.forEach(t => {
+            const alb = (t.album || 'Álbum desconocido').trim();
+            const key = alb.toLowerCase();
+            if (!uniqueAlbumsMap.has(key)) {
+              uniqueAlbumsMap.set(key, alb);
+            }
+          });
+          const albums = Array.from(uniqueAlbumsMap.values()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
           return albums.map(album => {
-            const albumTracks = this.tracks.filter(t => t.album === album);
+            const seenTracks = new Set();
+            this.tracks.filter(t => (t.album || 'Álbum desconocido').trim().toLowerCase() === album.toLowerCase()).forEach(t => {
+              seenTracks.add((t.uri || t.title).toLowerCase());
+            });
+            const count = seenTracks.size;
             return {
               label: album,
-              badge: `${albumTracks.length} song${albumTracks.length > 1 ? 's' : ''}`,
+              badge: `${count} song${count > 1 ? 's' : ''}`,
               action: () => {
                 this.selectedAlbum = album;
                 this.pushMenu('ALBUM_SONGS');
@@ -1390,11 +1449,20 @@
           });
         }
         if (this.currentMenu === 'ALBUM_SONGS') {
-          const albumTracks = this.tracks.filter(t => t.album === this.selectedAlbum);
-          return albumTracks.map(t => ({
-            label: `${t.title} - ${t.artist}`,
-            action: () => this.playTrack(t)
-          }));
+          const seen = new Set();
+          const filtered = this.tracks.filter(t => (t.album || '').trim().toLowerCase() === (this.selectedAlbum || '').trim().toLowerCase()).filter(t => {
+            const key = (t.uri || t.title).toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          return sortTracks(filtered).map(t => {
+            const prefix = (t.trackNumber && t.trackNumber > 0) ? `${t.trackNumber}. ` : '';
+            return {
+              label: `${prefix}${t.title || 'Sin título'} - ${t.artist || 'Artista desconocido'}`,
+              action: () => this.playTrack(t)
+            };
+          });
         }
         if (this.currentMenu === 'SETTINGS') {
           const repeatText = this.repeatMode === 'ALL' ? 'Todo' : (this.repeatMode === 'ONE' ? 'Esta' : 'Off');
@@ -1563,20 +1631,22 @@
 
       nextTrack() {
         this.audio.playClickSound();
-        if (!this.currentTrack) return;
-        const idx = this.tracks.findIndex(t => t.id === this.currentTrack.id);
+        if (!this.tracks || this.tracks.length === 0) return;
+        let idx = this.currentTrack ? this.tracks.findIndex(t => t.id === this.currentTrack.id || t.uri === this.currentTrack.uri) : -1;
+        if (idx === -1) idx = 0;
         const next = this.tracks[(idx + 1) % this.tracks.length];
         this.playTrack(next);
       }
 
       prevTrack() {
         this.audio.playClickSound();
-        if (!this.currentTrack) return;
+        if (!this.tracks || this.tracks.length === 0) return;
         if (this.audio.position > 3) {
           this.audio.seek(0);
           return;
         }
-        const idx = this.tracks.findIndex(t => t.id === this.currentTrack.id);
+        let idx = this.currentTrack ? this.tracks.findIndex(t => t.id === this.currentTrack.id || t.uri === this.currentTrack.uri) : -1;
+        if (idx === -1) idx = 0;
         const prev = this.tracks[(idx - 1 + this.tracks.length) % this.tracks.length];
         this.playTrack(prev);
       }
@@ -1619,6 +1689,20 @@
         const canGoBack = this.currentScreen === 'NOW_PLAYING' || this.currentScreen === 'ABOUT' || this.menuStack.length > 0;
         this.btnBack.style.visibility = canGoBack ? 'visible' : 'hidden';
 
+        const backBtnSpan = this.btnBack.querySelector('span') || this.btnBack;
+        if (this.currentScreen === 'NOW_PLAYING') {
+          backBtnSpan.textContent = 'Library';
+        } else if (this.currentScreen === 'ABOUT') {
+          backBtnSpan.textContent = 'Settings';
+        } else if (this.menuStack.length > 0) {
+          const parentMenu = this.menuStack[this.menuStack.length - 1];
+          if (parentMenu === 'MAIN') backBtnSpan.textContent = 'Music';
+          else if (parentMenu === 'ARTISTS') backBtnSpan.textContent = 'Artists';
+          else if (parentMenu === 'ALBUMS') backBtnSpan.textContent = 'Albums';
+          else backBtnSpan.textContent = 'Menu';
+        } else {
+          backBtnSpan.textContent = 'Menu';
+        }
         if (this.currentScreen === 'MENU') {
           this.menuContainer.style.display = 'flex';
           this.npContainer.style.display = 'none';
@@ -1663,25 +1747,28 @@
           this.menuContainer.style.display = 'none';
           this.npContainer.style.display = 'flex';
           this.aboutContainer.style.display = 'none';
-          this.statusTitle.textContent = 'Now Playing';
+          this.statusTitle.textContent = this.currentTrack && this.currentTrack.album ? this.currentTrack.album : 'Now Playing';
 
           if (this.currentTrack) {
-            this.npTitle.textContent = this.currentTrack.title;
-            this.npArtist.textContent = this.currentTrack.artist;
-            this.npAlbum.textContent = this.currentTrack.album;
-            if (this.currentTrack.cover) {
+            this.npTitle.textContent = this.currentTrack.title || 'Sin título';
+            this.npArtist.textContent = this.currentTrack.artist || 'Artista desconocido';
+            this.npAlbum.textContent = this.currentTrack.album || 'Álbum desconocido';
+            const coverVal = this.currentTrack.cover;
+            if (coverVal && coverVal !== 'null' && coverVal !== '' && coverVal !== 'undefined' && coverVal !== 'false') {
               this.npCover.style.display = 'block';
               this.npGenericCover.style.display = 'none';
-              this.npCover.src = this.currentTrack.cover;
+              this.npCover.src = coverVal;
             } else {
               this.npCover.style.display = 'none';
               this.npGenericCover.style.display = 'flex';
             }
-            this.npIndex.textContent = `${idx + 1} of ${this.tracks.length}`;
+            const idx = this.tracks.findIndex(t => t.id === this.currentTrack.id || t.uri === this.currentTrack.uri);
+            this.npIndex.textContent = `${Math.max(0, idx) + 1} of ${this.tracks.length}`;
             this.onTick();
           }
         }
       }
+
 
       initTouchListeners() {
         this.btnBack.onclick = () => this.popMenu();
@@ -1725,6 +1812,10 @@
         this.volumeSlider.addEventListener('pointerdown', (e) => {
           isVolSliding = true;
           try { this.volumeSlider.setPointerCapture(e.pointerId); } catch (_) {}
+          updateVolumeFromPointer(e);
+        });
+
+        this.volumeSlider.addEventListener('click', (e) => {
           updateVolumeFromPointer(e);
         });
 
