@@ -1,13 +1,14 @@
 package com.ipodnano.player.data.gateway
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Build
 import android.os.ParcelFileDescriptor
 import com.ipodnano.player.domain.gateway.AudioPlayerGateway
 import com.ipodnano.player.domain.model.Track
-
 class AndroidAudioPlayerGateway(
     private val context: Context
 ) : AudioPlayerGateway {
@@ -24,10 +25,19 @@ class AndroidAudioPlayerGateway(
         try {
             activePfd?.close()
             activePfd = null
-
             val player = mediaPlayer ?: MediaPlayer().also { mediaPlayer = it }
             player.reset()
-            player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                player.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                player.setAudioStreamType(AudioManager.STREAM_MUSIC)
+            }
 
             var dataSourceSet = false
 
