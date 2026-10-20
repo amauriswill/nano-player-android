@@ -1,6 +1,213 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.ipodnano.player.presentation.view.IpodScreenView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/ipod_screen_view"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent"
+    android:background="@color/ipod_chassis"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- BISEL DE LA PANTALLA DEL IPOD -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/ipod_screen_bezel"
+        android:padding="6dp">
+
+        <!-- PANTALLA NATIVA DEL IPOD -->
+        <LinearLayout
+            android:id="@+id/ipod_screen_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FFFFFF"
+            android:orientation="vertical">
+
+            <!-- Barra de Estado Superior -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="28dp"
+                android:background="#E8ECEF"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="10dp">
+
+                <TextView
+                    android:id="@+id/tv_header_title"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Now Playing"
+                    android:textColor="#000000"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextClock
+                    android:id="@+id/tc_clock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:format12Hour="hh:mm a"
+                    android:format24Hour="HH:mm"
+                    android:textColor="#333333"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_battery"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="100% 🔋"
+                    android:textColor="#2E7D32"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Línea divisoria -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#CCCCCC" />
+
+            <!-- Cuerpo de la pantalla (Split View estilo iPod Nano: Menú Izquierda / Portada Derecha) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal">
+
+                <!-- Lista de Menú / Canciones (Mitad Izquierda) -->
+                <ListView
+                    android:id="@+id/lv_menu"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1.1"
+                    android:choiceMode="singleChoice"
+                    android:divider="@null"
+                    android:scrollbars="none" />
+
+                <!-- Panel Derecho (Carátula y Estado de Reproducción) -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.9"
+                    android:background="#F5F7FA"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <ImageView
+                        android:id="@+id/iv_cover"
+                        android:layout_width="120dp"
+                        android:layout_height="120dp"
+                        android:scaleType="centerCrop"
+                        android:background="#DDDDDD" />
+
+                    <TextView
+                        android:id="@+id/tv_now_playing_title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:ellipsize="marquee"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="Selecciona una pista"
+                        android:textColor="#000000"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_now_playing_artist"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="center"
+                        android:singleLine="true"
+                        android:text="Nano Player v2.0"
+                        android:textColor="#666666"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- RUEDA TÁCTIL NATIVA (CLICK WHEEL) -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1.1"
+        android:gravity="center">
+
+        <RelativeLayout
+            android:id="@+id/ipod_wheel"
+            android:layout_width="260dp"
+            android:layout_height="260dp"
+            android:layout_gravity="center"
+            android:background="@drawable/bg_wheel_circle"
+            android:elevation="4dp">
+
+            <!-- Botón MENU (Arriba) -->
+            <TextView
+                android:id="@+id/btn_wheel_menu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="20dp"
+                android:padding="10dp"
+                android:text="MENU"
+                android:textColor="#888888"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- Botón Anterior (Izquierda) -->
+            <TextView
+                android:id="@+id/btn_wheel_prev"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="20dp"
+                android:padding="10dp"
+                android:text="⏮"
+                android:textColor="#888888"
+                android:textSize="18sp" />
+
+            <!-- Botón Siguiente (Derecha) -->
+            <TextView
+                android:id="@+id/btn_wheel_next"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="20dp"
+                android:padding="10dp"
+                android:text="⏭"
+                android:textColor="#888888"
+                android:textSize="18sp" />
+
+            <!-- Botón Play/Pause (Abajo) -->
+            <TextView
+                android:id="@+id/btn_wheel_play"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginBottom="20dp"
+                android:padding="10dp"
+                android:text="⏯"
+                android:textColor="#888888"
+                android:textSize="18sp" />
+
+            <!-- Botón Central de Selección -->
+            <View
+                android:id="@+id/ipod_center_btn"
+                android:layout_width="92dp"
+                android:layout_height="92dp"
+                android:layout_centerInParent="true"
+                android:background="@drawable/bg_center_btn" />
+
+        </RelativeLayout>
+    </FrameLayout>
+
+</LinearLayout>
