@@ -148,7 +148,7 @@
       top: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
-      max-width: 58%;
+      max-width: 42%;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
@@ -1365,6 +1365,17 @@
             { label: 'Settings', action: () => this.pushMenu('SETTINGS') }
           ];
         }
+        const sortTracks = (arr) => {
+          return arr.sort((a, b) => {
+            const ta = Number(a.trackNumber) || 0;
+            const tb = Number(b.trackNumber) || 0;
+            if (ta > 0 && tb > 0 && ta !== tb) return ta - tb;
+            if (ta > 0 && tb === 0) return -1;
+            if (ta === 0 && tb > 0) return 1;
+            return (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base', numeric: true });
+          });
+        };
+
         if (this.currentMenu === 'SONGS') {
           const seen = new Set();
           const uniqueTracks = [];
@@ -1375,7 +1386,7 @@
               uniqueTracks.push(t);
             }
           });
-          return uniqueTracks.sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0) || (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base', numeric: true })).map(t => ({
+          return sortTracks(uniqueTracks).map(t => ({
             label: `${t.title || 'Sin título'} - ${t.artist || 'Artista desconocido'}`,
             action: () => this.playTrack(t)
           }));
@@ -1400,12 +1411,13 @@
         }
         if (this.currentMenu === 'ARTIST_SONGS') {
           const seen = new Set();
-          return this.tracks.filter(t => (t.artist || '').trim().toLowerCase() === (this.selectedArtist || '').trim().toLowerCase()).filter(t => {
+          const filtered = this.tracks.filter(t => (t.artist || '').trim().toLowerCase() === (this.selectedArtist || '').trim().toLowerCase()).filter(t => {
             const key = (t.uri || t.title).toLowerCase();
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
-          }).sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0) || (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base', numeric: true })).map(t => ({
+          });
+          return sortTracks(filtered).map(t => ({
             label: t.title || 'Sin título',
             action: () => this.playTrack(t)
           }));
@@ -1438,12 +1450,13 @@
         }
         if (this.currentMenu === 'ALBUM_SONGS') {
           const seen = new Set();
-          return this.tracks.filter(t => (t.album || '').trim().toLowerCase() === (this.selectedAlbum || '').trim().toLowerCase()).filter(t => {
+          const filtered = this.tracks.filter(t => (t.album || '').trim().toLowerCase() === (this.selectedAlbum || '').trim().toLowerCase()).filter(t => {
             const key = (t.uri || t.title).toLowerCase();
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
-          }).sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0) || (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base', numeric: true })).map(t => ({
+          });
+          return sortTracks(filtered).map(t => ({
             label: `${t.title || 'Sin título'} - ${t.artist || 'Artista desconocido'}`,
             action: () => this.playTrack(t)
           }));
@@ -1735,15 +1748,15 @@
             this.npTitle.textContent = this.currentTrack.title || 'Sin título';
             this.npArtist.textContent = this.currentTrack.artist || 'Artista desconocido';
             this.npAlbum.textContent = this.currentTrack.album || 'Álbum desconocido';
-            if (this.currentTrack.cover) {
+            const coverVal = this.currentTrack.cover;
+            if (coverVal && coverVal !== 'null' && coverVal !== '' && coverVal !== 'undefined') {
               this.npCover.style.display = 'block';
               this.npGenericCover.style.display = 'none';
-              this.npCover.src = this.currentTrack.cover;
+              this.npCover.src = coverVal;
             } else {
               this.npCover.style.display = 'none';
               this.npGenericCover.style.display = 'flex';
             }
-            const idx = this.tracks.findIndex(t => t.id === this.currentTrack.id);
             this.npIndex.textContent = `${idx + 1} of ${this.tracks.length}`;
             this.onTick();
           }
