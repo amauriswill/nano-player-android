@@ -1783,6 +1783,10 @@
           updateVolumeFromPointer(e);
         });
 
+        this.volumeSlider.addEventListener('click', (e) => {
+          updateVolumeFromPointer(e);
+        });
+
         this.volumeSlider.addEventListener('pointermove', (e) => {
           if (isVolSliding) {
             updateVolumeFromPointer(e);
