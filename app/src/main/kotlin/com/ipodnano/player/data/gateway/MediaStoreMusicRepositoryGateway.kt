@@ -29,7 +29,8 @@ class MediaStoreMusicRepositoryGateway(
                 MediaStore.Audio.Media.ARTIST,
                 MediaStore.Audio.Media.ALBUM,
                 MediaStore.Audio.Media.DURATION,
-                MediaStore.Audio.Media.ALBUM_ID
+                MediaStore.Audio.Media.ALBUM_ID,
+                MediaStore.Audio.Media.TRACK
             )
 
             val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 OR " +
@@ -63,6 +64,7 @@ class MediaStoreMusicRepositoryGateway(
                 val albumCol = it.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
                 val durCol = it.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
                 val albumIdCol = it.getColumnIndex(MediaStore.Audio.Media.ALBUM_ID)
+                val trackCol = it.getColumnIndex(MediaStore.Audio.Media.TRACK)
 
                 while (it.moveToNext()) {
                     val id = it.getLong(idCol)
@@ -70,6 +72,8 @@ class MediaStoreMusicRepositoryGateway(
                     val artist = it.getString(artistCol) ?: "Artista desconocido"
                     val album = it.getString(albumCol) ?: "Álbum desconocido"
                     val duration = it.getLong(durCol)
+                    val rawTrack = if (trackCol != -1) it.getInt(trackCol) else 0
+                    val trackNum = if (rawTrack > 1000) rawTrack % 1000 else rawTrack
 
                     val contentUri: Uri = ContentUris.withAppendedId(
                         MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -125,7 +129,8 @@ class MediaStoreMusicRepositoryGateway(
                             album = album,
                             durationMs = if (duration > 0) duration else 180000L,
                             sourceUri = contentUri.toString(),
-                            artworkUrl = artUriStr
+                            artworkUrl = artUriStr,
+                            trackNumber = trackNum
                         )
                     )
                 }
@@ -150,7 +155,8 @@ class MediaStoreMusicRepositoryGateway(
                 put("album", track.album)
                 put("durationMs", track.durationMs)
                 put("uri", track.sourceUri)
-                put("cover", track.artworkUrl ?: "")
+                put("cover", track.artworkUrl ?: JSONObject.NULL)
+                put("trackNumber", track.trackNumber)
             }
             jsonArray.put(obj)
         }

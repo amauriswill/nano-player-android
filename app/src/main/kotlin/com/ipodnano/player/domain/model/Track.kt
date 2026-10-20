@@ -7,5 +7,6 @@ data class Track(
     val album: String,
     val durationMs: Long,
     val sourceUri: String,
-    val artworkUrl: String? = null
+    val artworkUrl: String? = null,
+    val trackNumber: Int = 0
 )

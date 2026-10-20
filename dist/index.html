@@ -435,9 +435,9 @@
     }
 
     .album-art-square {
-      width: 112px;
-      height: 112px;
-      border-radius: 4px;
+      width: 140px;
+      height: 140px;
+      border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       object-fit: cover;
       background: #1e293b;
@@ -445,7 +445,10 @@
       display: block;
     }
 
-    .album-art-square.generic-cover {
+    .generic-cover-box {
+      width: 140px;
+      height: 140px;
+      border-radius: 12px;
       display: none;
       align-items: center;
       justify-content: center;
@@ -454,6 +457,7 @@
       font-size: 52px;
       border: 1px solid #334155;
       box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(0,0,0,0.15);
+      flex-shrink: 0;
     }
 
     .track-meta-col {
@@ -724,9 +728,10 @@
             src="covers/demondays.jpg" 
             alt="Album Cover"
           >
-          <div class="album-art-square generic-cover" id="np-generic-cover" title="Sin carátula">
+          <div class="generic-cover-box" id="np-generic-cover" title="Sin carátula" style="display: none;">
             <i class="ri-disc-line"></i>
           </div>
+          <div class="track-meta-col">
             <div class="track-title" id="np-title">-</div>
             <div class="track-artist" id="np-artist">-</div>
             <div class="track-album" id="np-album">-</div>
@@ -1370,7 +1375,7 @@
               uniqueTracks.push(t);
             }
           });
-          return uniqueTracks.map(t => ({
+          return uniqueTracks.sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0) || (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base', numeric: true })).map(t => ({
             label: `${t.title || 'Sin título'} - ${t.artist || 'Artista desconocido'}`,
             action: () => this.playTrack(t)
           }));
@@ -1384,7 +1389,7 @@
               uniqueArtistsMap.set(key, art);
             }
           });
-          const artists = Array.from(uniqueArtistsMap.values()).sort();
+          const artists = Array.from(uniqueArtistsMap.values()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
           return artists.map(a => ({
             label: a,
             action: () => {
@@ -1400,7 +1405,7 @@
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
-          }).map(t => ({
+          }).sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0) || (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base', numeric: true })).map(t => ({
             label: t.title || 'Sin título',
             action: () => this.playTrack(t)
           }));
@@ -1414,7 +1419,7 @@
               uniqueAlbumsMap.set(key, alb);
             }
           });
-          const albums = Array.from(uniqueAlbumsMap.values()).sort();
+          const albums = Array.from(uniqueAlbumsMap.values()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
           return albums.map(album => {
             const seenTracks = new Set();
             this.tracks.filter(t => (t.album || 'Álbum desconocido').trim().toLowerCase() === album.toLowerCase()).forEach(t => {
@@ -1438,7 +1443,7 @@
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
-          }).map(t => ({
+          }).sort((a, b) => (a.trackNumber || 0) - (b.trackNumber || 0) || (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base', numeric: true })).map(t => ({
             label: `${t.title || 'Sin título'} - ${t.artist || 'Artista desconocido'}`,
             action: () => this.playTrack(t)
           }));
