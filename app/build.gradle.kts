@@ -54,6 +54,14 @@ android {
         abortOnError = false
         checkReleaseBuilds = false
     }
+
+    applicationVariants.all {
+        val variant = this
+        outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "NanoPlayer-v${variant.versionName}-${variant.name}.apk"
+        }
+    }
 }
 
 dependencies {

@@ -1071,12 +1071,10 @@
         this.volumePercent = 70;
         this.isPlayingNative = false;
         
-        // Haptic feedback toggle (True toggle: respects ON / OFF strictly)
         this.hapticEnabled = true;
+        this.shuffleEnabled = false;
 
         this.repeatMode = 'OFF';
-        this.toastTimer = null;
-        this.isHeadsetConnected = !window.AndroidBridge;
 
         this.menuContainer = document.getElementById('menu-container');
         this.npContainer = document.getElementById('now-playing-container');
@@ -1473,6 +1471,16 @@
               action: () => this.cycleRepeatMode()
             },
             {
+              label: 'Shuffle (Aleatorio)',
+              badge: this.shuffleEnabled ? 'ON' : 'OFF',
+              action: () => {
+                this.shuffleEnabled = !this.shuffleEnabled;
+                this.audio.playClickSound();
+                this.showToast(`Shuffle: ${this.shuffleEnabled ? 'Activado' : 'Desactivado'}`, 'ri-shuffle-line');
+                this.render();
+              }
+            },
+            {
               label: 'Haptic Feedback',
               badge: this.hapticEnabled ? 'ON' : 'OFF',
               action: () => {
@@ -1482,8 +1490,6 @@
                 this.render();
               }
             },
-            {
-              label: 'Dark Mode',
               badge: this.darkMode ? 'ON' : 'OFF',
               action: () => this.toggleDarkMode()
             },
@@ -1632,12 +1638,19 @@
       nextTrack() {
         this.audio.playClickSound();
         if (!this.tracks || this.tracks.length === 0) return;
+        if (this.shuffleEnabled && this.tracks.length > 1) {
+          let randIdx;
+          do {
+            randIdx = Math.floor(Math.random() * this.tracks.length);
+          } while (this.currentTrack && this.tracks[randIdx].id === this.currentTrack.id && this.tracks.length > 1);
+          this.playTrack(this.tracks[randIdx]);
+          return;
+        }
         let idx = this.currentTrack ? this.tracks.findIndex(t => t.id === this.currentTrack.id || t.uri === this.currentTrack.uri) : -1;
         if (idx === -1) idx = 0;
         const next = this.tracks[(idx + 1) % this.tracks.length];
         this.playTrack(next);
       }
-
       prevTrack() {
         this.audio.playClickSound();
         if (!this.tracks || this.tracks.length === 0) return;
@@ -1747,7 +1760,7 @@
           this.menuContainer.style.display = 'none';
           this.npContainer.style.display = 'flex';
           this.aboutContainer.style.display = 'none';
-          this.statusTitle.textContent = this.currentTrack && this.currentTrack.album ? this.currentTrack.album : 'Now Playing';
+          this.statusTitle.textContent = 'Now Playing';
 
           if (this.currentTrack) {
             this.npTitle.textContent = this.currentTrack.title || 'Sin título';
