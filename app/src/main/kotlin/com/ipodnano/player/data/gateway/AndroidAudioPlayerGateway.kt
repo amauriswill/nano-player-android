@@ -16,9 +16,10 @@ class AndroidAudioPlayerGateway(
     private var onCompletionListener: (() -> Unit)? = null
     private var currentTrackId: String? = null
     private var activePfd: ParcelFileDescriptor? = null
+    private val notificationHelper = MusicNotificationHelper(context)
+    private var currentPlayingTrack: Track? = null
 
     var isHeadsetConnected: Boolean = true
-
     override fun play(track: Track) {
         try {
             activePfd?.close()
@@ -66,9 +67,9 @@ class AndroidAudioPlayerGateway(
                     onCompletionListener?.invoke()
                 }
                 currentTrackId = track.id
+                currentPlayingTrack = track
+                notificationHelper.show(track, true)
             } else {
-                // If native file could not be opened, release player so fallback engine plays
-                release()
             }
         } catch (_: Exception) {
             release()
@@ -79,6 +80,7 @@ class AndroidAudioPlayerGateway(
         try {
             if (mediaPlayer?.isPlaying == true) {
                 mediaPlayer?.pause()
+                currentPlayingTrack?.let { notificationHelper.show(it, false) }
             }
         } catch (_: Exception) {}
     }
@@ -87,6 +89,7 @@ class AndroidAudioPlayerGateway(
         try {
             if (mediaPlayer?.isPlaying == false) {
                 mediaPlayer?.start()
+                currentPlayingTrack?.let { notificationHelper.show(it, true) }
             }
         } catch (_: Exception) {}
     }
@@ -94,9 +97,9 @@ class AndroidAudioPlayerGateway(
     override fun stop() {
         try {
             mediaPlayer?.stop()
+            notificationHelper.cancel()
         } catch (_: Exception) {}
     }
-
     override fun seekTo(positionMs: Long) {
         try {
             mediaPlayer?.seekTo(positionMs.toInt())
@@ -151,5 +154,6 @@ class AndroidAudioPlayerGateway(
         } catch (_: Exception) {}
         mediaPlayer = null
         currentTrackId = null
+        notificationHelper.cancel()
     }
 }
