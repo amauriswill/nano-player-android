@@ -1,60 +1,72 @@
 package com.ipodnano.player.presentation
 
+import android.app.Activity
 import android.content.Context
-import android.graphics.BitmapFactory
-import android.graphics.Color
+import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.ToneGenerator
 import android.os.BatteryManager
+import android.os.Build
 import android.os.Bundle
-import android.view.MotionEvent
-import android.view.View
-import android.view.ViewGroup
+import android.os.Handler
+import android.os.Looper
 import android.view.Window
 import android.view.WindowManager
-import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
+import android.widget.Toast
 import com.ipodnano.player.R
-import kotlin.math.atan2
+import com.ipodnano.player.data.repository.MediaStoreMusicRepository
+import com.ipodnano.player.domain.model.Track
+import com.ipodnano.player.presentation.view.IpodScreenView
 
-data class SongItem(val title: String, val artist: String, val assetPath: String)
+class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
 
-class MainActivity : AppCompatActivity() {
-
-    private lateinit var lvMenu: ListView
-    private lateinit var ivCover: ImageView
-    private lateinit var tvNowPlayingTitle: TextView
-    private lateinit var tvNowPlayingArtist: TextView
-    private lateinit var tvHeaderTitle: TextView
-    private lateinit var tvBattery: TextView
-
-    private var selectedIndex = 0
-    private var isInSongsSubmenu = false
-    private var isPlaying = false
-    private var lastWheelAngle = 0.0
-    private var toneGen: ToneGenerator? = null
-    private var mediaPlayer: MediaPlayer? = null
-
-    private val songsList = listOf(
-        SongItem("Feel Good Inc.", "Gorillaz", "covers/demondays.jpg"),
-        SongItem("1901", "Phoenix", "covers/phoenix.jpg"),
-        SongItem("Viva La Vida", "Coldplay", "covers/coldplay.jpg"),
-        SongItem("Harder, Better, Faster", "Daft Punk", "covers/daftpunk.jpg"),
-        SongItem("Mr. Brightside", "The Killers", "covers/thekillers.jpg")
-    )
+    private lateinit var ipodScreen: IpodScreenView
+    private lateinit var musicRepo: MediaStoreMusicRepository
+    private var allTracks: List<Track> = emptyList()
+    private var currentPlaylist: List<Track> = emptyList()
+    private var currentTrackIndex = 0
 
     private val mainMenuItems = listOf(
-        "Música",
-        "Listas de reproducción",
-        "Artistas",
-        "Álbumes",
-        "Configuración",
-        "Ahora suena"
+        "Music",
+        "Artists",
+        "Albums",
+        "Settings",
+        "Now Playing"
     )
 
-    private var currentDisplayList: List<String> = mainMenuItems
-    private lateinit var menuAdapter: ArrayAdapter<String>
+    private val settingsItems = listOf(
+        "Audio Quality: Lossless",
+        "SoundCheck: On",
+        "EQ Preset: Rock / Bass",
+        "Shuffle: Off",
+        "About: Nano Player v2.0"
+    )
+
+    private enum class MenuLevel { ROOT, SUB_MENU, TRACKS_LIST, SETTINGS }
+    private var menuLevel = MenuLevel.ROOT
+    private var currentMenuTitle = "Nano Player"
+    private var currentDisplayItems = mainMenuItems
+    private var selectedIndex = 0
+
+    private var isPlaying = false
+    private var repeatModeState = "Off"
+    private var mediaPlayer: MediaPlayer? = null
+    private var toneGen: ToneGenerator? = null
+    private var audioManager: AudioManager? = null
+    private var batteryPercent = 49
+
+    private val handler = Handler(Looper.getMainLooper())
+    private val progressRunnable = object : Runnable {
+        override fun run() {
+            if (isPlaying && mediaPlayer != null) {
+                try {
+                    updateCurrentScreenView()
+                    handler.postDelayed(this, 500)
+                } catch (_: Exception) {}
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,173 +83,322 @@ class MainActivity : AppCompatActivity() {
             toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 30)
         } catch (_: Exception) {}
 
-        lvMenu = findViewById(R.id.lv_menu)
-        ivCover = findViewById(R.id.iv_cover)
-        tvNowPlayingTitle = findViewById(R.id.tv_now_playing_title)
-        tvNowPlayingArtist = findViewById(R.id.tv_now_playing_artist)
-        tvHeaderTitle = findViewById(R.id.tv_header_title)
-        tvBattery = findViewById(R.id.tv_battery)
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+        checkAndRequestPermissions()
+
+        musicRepo = MediaStoreMusicRepository(this)
+        allTracks = musicRepo.getAllTracks()
+        currentPlaylist = allTracks
 
         updateBatteryStatus()
-        setupMenuList()
-        setupClickWheel()
+        renderCurrentState()
+    }
+
+    private fun checkAndRequestPermissions() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            android.Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        if (checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(permission), 100)
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            musicRepo.reload()
+            allTracks = musicRepo.getAllTracks()
+            currentPlaylist = allTracks
+            renderCurrentState()
+        }
     }
 
     private fun updateBatteryStatus() {
         try {
             val bm = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-            val batLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-            tvBattery.text = "$batLevel% 🔋"
+            batteryPercent = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
         } catch (_: Exception) {
-            tvBattery.text = "100% 🔋"
+            batteryPercent = 49
         }
     }
 
-    private fun setupMenuList() {
-        menuAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, currentDisplayList) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val view = super.getView(position, convertView, parent) as TextView
-                view.textSize = 14f
-                view.setPadding(20, 14, 20, 14)
+    private fun renderCurrentState() {
+        ipodScreen = findViewById(R.id.ipod_screen)
+        ipodScreen.touchListener = this
 
-                if (position == selectedIndex) {
-                    view.setBackgroundColor(Color.parseColor("#3478F6"))
-                    view.setTextColor(Color.WHITE)
-                } else {
-                    view.setBackgroundColor(Color.TRANSPARENT)
-                    view.setTextColor(Color.BLACK)
+        if (menuLevel == MenuLevel.ROOT || menuLevel == MenuLevel.SUB_MENU || menuLevel == MenuLevel.TRACKS_LIST || menuLevel == MenuLevel.SETTINGS) {
+            ipodScreen.showMenu(
+                title = currentMenuTitle,
+                items = currentDisplayItems,
+                selected = selectedIndex,
+                battery = batteryPercent,
+                backEnabled = menuLevel != MenuLevel.ROOT,
+                darkMode = false
+            )
+        } else {
+            updateCurrentScreenView()
+        }
+    }
+
+    private fun updateCurrentScreenView() {
+        ipodScreen = findViewById(R.id.ipod_screen)
+        ipodScreen.touchListener = this
+
+        val track = if (currentPlaylist.isNotEmpty()) currentPlaylist[currentTrackIndex.coerceIn(0, currentPlaylist.size - 1)] else null
+        val title = track?.title ?: "Feel Good, Inc."
+        val artist = track?.artist ?: "Gorillaz"
+        val album = track?.album ?: "Demon Days"
+        val artUri = track?.albumArtUri
+        val dur = track?.durationMs ?: 180000L
+        val pos = mediaPlayer?.let { try { it.currentPosition.toLong() } catch (_: Exception) { 0L } } ?: 32000L
+
+        val posText = formatTime(pos)
+        val durText = "-" + formatTime(dur - pos)
+        val progress = if (dur > 0) pos.toFloat() / dur.toFloat() else 0.32f
+        val indexText = "${currentTrackIndex + 1} of ${currentPlaylist.size.coerceAtLeast(1)}"
+        val vol = audioManager?.let { am ->
+            val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val cur = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+            if (max > 0) (cur * 100) / max else 72
+        } ?: 72
+
+        ipodScreen.showNowPlaying(
+            title = title,
+            artist = artist,
+            album = album,
+            artUri = artUri,
+            playing = isPlaying,
+            progress = progress,
+            posText = posText,
+            durText = durText,
+            indexText = indexText,
+            volume = vol,
+            battery = batteryPercent,
+            darkMode = false,
+            repeat = repeatModeState
+        )
+    }
+
+    private fun formatTime(ms: Long): String {
+        val secs = (ms / 1000) % 60
+        val mins = (ms / (1000 * 60)) % 60
+        return String.format("%d:%02d", mins, secs)
+    }
+
+    override fun onItemClick(index: Int) {
+        selectedIndex = index
+        playClickSound()
+
+        when (menuLevel) {
+            MenuLevel.ROOT -> {
+                when (index) {
+                    0 -> {
+                        // Music
+                        menuLevel = MenuLevel.TRACKS_LIST
+                        currentMenuTitle = "Music"
+                        currentPlaylist = allTracks
+                        currentDisplayItems = allTracks.map { "${it.title} - ${it.artist}" }
+                        selectedIndex = 0
+                        renderCurrentState()
+                    }
+                    1 -> {
+                        // Artists
+                        menuLevel = MenuLevel.SUB_MENU
+                        currentMenuTitle = "Artists"
+                        val artists = musicRepo.getArtists()
+                        currentDisplayItems = if (artists.isNotEmpty()) artists else listOf("No artists found")
+                        selectedIndex = 0
+                        renderCurrentState()
+                    }
+                    2 -> {
+                        // Albums
+                        menuLevel = MenuLevel.SUB_MENU
+                        currentMenuTitle = "Albums"
+                        val albums = musicRepo.getAlbums()
+                        currentDisplayItems = if (albums.isNotEmpty()) albums else listOf("No albums found")
+                        selectedIndex = 0
+                        renderCurrentState()
+                    }
+                    3 -> {
+                        // Settings
+                        menuLevel = MenuLevel.SETTINGS
+                        currentMenuTitle = "Settings"
+                        currentDisplayItems = settingsItems
+                        selectedIndex = 0
+                        renderCurrentState()
+                    }
+                    4 -> {
+                        // Now Playing
+                        if (currentPlaylist.isNotEmpty()) {
+                            showNowPlaying()
+                        } else {
+                            Toast.makeText(this, "No tracks available", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    else -> Toast.makeText(this, mainMenuItems[index], Toast.LENGTH_SHORT).show()
                 }
-                return view
             }
-        }
-        lvMenu.adapter = menuAdapter
-
-        lvMenu.setOnItemClickListener { _, _, position, _ ->
-            selectedIndex = position
-            menuAdapter.notifyDataSetChanged()
-            handleCenterButtonPress()
-        }
-    }
-
-    private fun setupClickWheel() {
-        val wheel = findViewById<RelativeLayout>(R.id.ipod_wheel)
-        val centerBtn = findViewById<View>(R.id.ipod_center_btn)
-        val btnMenu = findViewById<View>(R.id.btn_wheel_menu)
-        val btnNext = findViewById<View>(R.id.btn_wheel_next)
-        val btnPrev = findViewById<View>(R.id.btn_wheel_prev)
-        val btnPlay = findViewById<View>(R.id.btn_wheel_play)
-
-        wheel.setOnTouchListener { v, event ->
-            val centerX = v.width / 2f
-            val centerY = v.height / 2f
-            val x = event.x - centerX
-            val y = event.y - centerY
-
-            val angle = Math.toDegrees(atan2(y.toDouble(), x.toDouble()))
-
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    lastWheelAngle = angle
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    var delta = angle - lastWheelAngle
-                    if (delta > 180) delta -= 360
-                    if (delta < -180) delta += 360
-
-                    if (delta > 25) {
-                        moveSelection(1)
-                        lastWheelAngle = angle
-                    } else if (delta < -25) {
-                        moveSelection(-1)
-                        lastWheelAngle = angle
+            MenuLevel.SETTINGS -> {
+                Toast.makeText(this, settingsItems[index], Toast.LENGTH_SHORT).show()
+            }
+            MenuLevel.SUB_MENU -> {
+                if (currentMenuTitle == "Artists") {
+                    val artists = musicRepo.getArtists()
+                    if (index in artists.indices) {
+                        val artist = artists[index]
+                        menuLevel = MenuLevel.TRACKS_LIST
+                        currentMenuTitle = artist
+                        currentPlaylist = musicRepo.getTracksByArtist(artist)
+                        currentDisplayItems = currentPlaylist.map { "${it.title} - ${it.artist}" }
+                        selectedIndex = 0
+                        renderCurrentState()
+                    }
+                } else if (currentMenuTitle == "Albums") {
+                    val albums = musicRepo.getAlbums()
+                    if (index in albums.indices) {
+                        val album = albums[index]
+                        menuLevel = MenuLevel.TRACKS_LIST
+                        currentMenuTitle = album
+                        currentPlaylist = musicRepo.getTracksByAlbum(album)
+                        currentDisplayItems = currentPlaylist.map { "${it.title} - ${it.artist}" }
+                        selectedIndex = 0
+                        renderCurrentState()
                     }
                 }
             }
-            true
-        }
-
-        centerBtn.setOnClickListener { handleCenterButtonPress() }
-
-        btnMenu.setOnClickListener {
-            if (isInSongsSubmenu) {
-                isInSongsSubmenu = false
-                tvHeaderTitle.text = "Now Playing"
-                currentDisplayList = mainMenuItems
-                selectedIndex = 0
-                setupMenuList()
-                playClickSound()
+            MenuLevel.TRACKS_LIST -> {
+                if (index in currentPlaylist.indices) {
+                    currentTrackIndex = index
+                    playCurrentTrack()
+                }
             }
         }
-
-        btnNext.setOnClickListener { moveSelection(1) }
-        btnPrev.setOnClickListener { moveSelection(-1) }
-
-        btnPlay.setOnClickListener {
-            togglePlayPause()
-        }
     }
 
-    private fun moveSelection(direction: Int) {
-        val newIndex = (selectedIndex + direction).coerceIn(0, currentDisplayList.size - 1)
-        if (newIndex != selectedIndex) {
-            selectedIndex = newIndex
-            menuAdapter.notifyDataSetChanged()
-            lvMenu.smoothScrollToPosition(selectedIndex)
-            playClickSound()
-        }
-    }
-
-    private fun handleCenterButtonPress() {
+    override fun onBackClick() {
         playClickSound()
-        if (!isInSongsSubmenu) {
-            when (selectedIndex) {
-                0 -> {
-                    // Música / Canciones
-                    isInSongsSubmenu = true
-                    tvHeaderTitle.text = "Música"
-                    currentDisplayList = songsList.map { it.title }
-                    selectedIndex = 0
-                    setupMenuList()
-                }
-                else -> {
-                    Toast.init(this)
-                    Toast.makeText(this, "Opción: ${mainMenuItems[selectedIndex]}", Toast.LENGTH_SHORT).show()
-                }
+        when (menuLevel) {
+            MenuLevel.TRACKS_LIST, MenuLevel.SUB_MENU, MenuLevel.SETTINGS -> {
+                menuLevel = MenuLevel.ROOT
+                currentMenuTitle = "Nano Player"
+                currentDisplayItems = mainMenuItems
+                selectedIndex = 0
+                renderCurrentState()
             }
-        } else {
-            val song = songsList[selectedIndex]
-            playSong(song)
+            MenuLevel.ROOT -> {}
         }
     }
 
-    private fun playSong(song: SongItem) {
+    override fun onPlayPauseClick() {
+        togglePlayPause()
+    }
+
+    override fun onNextClick() {
+        playNextTrack()
+    }
+
+    override fun onPreviousClick() {
+        playPrevTrack()
+    }
+
+    override fun onRepeatClick() {
+        playClickSound()
+        repeatModeState = when (repeatModeState) {
+            "Off" -> "All"
+            "All" -> "One"
+            "One" -> "Shuffle"
+            else -> "Off"
+        }
+        updateCurrentScreenView()
+    }
+
+    override fun onScrub(fraction: Float) {
+        if (mediaPlayer != null && mediaPlayer!!.duration > 0) {
+            val target = (fraction * mediaPlayer!!.duration).toInt()
+            mediaPlayer!!.seekTo(target)
+            updateCurrentScreenView()
+        }
+    }
+
+    override fun onVolumeChange(percent: Int) {
+        audioManager?.let { am ->
+            val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val targetVol = (percent / 100f * max).toInt().coerceIn(0, max)
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, 0)
+            updateCurrentScreenView()
+        }
+    }
+
+    private fun showNowPlaying() {
+        if (currentPlaylist.isEmpty()) {
+            Toast.makeText(this, "No tracks available", Toast.LENGTH_SHORT).show()
+            return
+        }
+        updateCurrentScreenView()
+    }
+
+    private fun playCurrentTrack() {
+        if (currentPlaylist.isEmpty()) return
+        val track = currentPlaylist[currentTrackIndex]
         try {
             mediaPlayer?.release()
-            mediaPlayer = MediaPlayer().apply {
-                // Play synth fallback or resource
-                setAudioStreamType(AudioManager.STREAM_MUSIC)
-                // Use synthetic tone or asset if available
-                prepare()
-                start()
+            mediaPlayer = if (track.sourceUri.isNotBlank()) {
+                MediaPlayer().apply {
+                    setDataSource(applicationContext, android.net.Uri.parse(track.sourceUri))
+                    prepare()
+                    start()
+                }
+            } else {
+                null
             }
             isPlaying = true
-            tvNowPlayingTitle.text = "▶ ${song.title}"
-            tvNowPlayingArtist.text = song.artist
+            handler.removeCallbacks(progressRunnable)
+            handler.post(progressRunnable)
         } catch (_: Exception) {
-            isPlaying = !isPlaying
-            val stateIcon = if (isPlaying) "▶ " else "⏸ "
-            tvNowPlayingTitle.text = "$stateIcon${song.title}"
-            tvNowPlayingArtist.text = song.artist
+            isPlaying = true
         }
-        playClickSound()
+        updateCurrentScreenView()
     }
 
     private fun togglePlayPause() {
-        isPlaying = !isPlaying
-        val stateIcon = if (isPlaying) "▶ " else "⏸ "
-        val currentSong = songsList[selectedIndex.coerceIn(0, songsList.size - 1)]
-        tvNowPlayingTitle.text = "$stateIcon${currentSong.title}"
         playClickSound()
+        try {
+            if (mediaPlayer != null) {
+                if (isPlaying) {
+                    mediaPlayer?.pause()
+                    isPlaying = false
+                    handler.removeCallbacks(progressRunnable)
+                } else {
+                    mediaPlayer?.start()
+                    isPlaying = true
+                    handler.post(progressRunnable)
+                }
+            } else if (currentPlaylist.isNotEmpty()) {
+                playCurrentTrack()
+            }
+        } catch (_: Exception) {}
+        updateCurrentScreenView()
+    }
+
+    private fun playNextTrack() {
+        playClickSound()
+        if (currentPlaylist.isEmpty()) return
+        currentTrackIndex = if (repeatModeState == "Shuffle") {
+            (0 until currentPlaylist.size).random()
+        } else {
+            (currentTrackIndex + 1) % currentPlaylist.size
+        }
+        playCurrentTrack()
+    }
+
+    private fun playPrevTrack() {
+        playClickSound()
+        if (currentPlaylist.isEmpty()) return
+        currentTrackIndex = if (currentTrackIndex - 1 < 0) currentPlaylist.size - 1 else currentTrackIndex - 1
+        playCurrentTrack()
     }
 
     private fun playClickSound() {
@@ -248,6 +409,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        handler.removeCallbacks(progressRunnable)
         try {
             mediaPlayer?.release()
             toneGen?.release()

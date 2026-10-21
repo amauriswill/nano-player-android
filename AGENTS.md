@@ -42,6 +42,15 @@ Core Engineering Rules
    Derived State and Lambdas: Wrap frequent scroll or layout calculations in remember { derivedStateOf { ... } } to prevent unnecessary recompositions on every frame.
    Edge-to-Edge: Call enableEdgeToEdge() in ComponentActivity.onCreate and handle window insets properly using Scaffold padding values or Modifier.systemBarsPadding().
 4. Type-Safe Navigation
+
+6. Emil Kowalski UI Craftsmanship & UX Standards
+   - Micro-Interactions: Every tap, transport button, and slider must feature immediate haptic and visual feedback (zero perceived latency).
+   - Zero Layout Shift (CLS = 0): Fixed dimensions, tabular numbers (`tabular-nums`), and stable layout constraints prevent any visual jitter.
+   - Aqua UI Aesthetics: High-fidelity typography (SF Pro hierarchy), smooth gradients, specular reflections, and dedicated media-exclusive focus.
+
+7. Matt Pocock Type Safety & DX Standards
+   - Strict Types & Exhaustiveness: Exhaustive when branches, zero use of untyped maps or any, full type safety across domain and presentation layers.
+   - Explicit Contracts: Clean interfaces with zero hidden assumptions, robust domain models, and clear separation of concerns.
    Serializable Routes: Use Jetpack Navigation Compose type-safe routes with @Serializable objects and data classes instead of hardcoded route strings:
    @Serializable data object HomeRoute
    @Serializable data class ProfileRoute(val userId: String)

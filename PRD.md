@@ -54,7 +54,6 @@ Estructura jerárquica limpia enfocada exclusivamente en audio, gobernada por un
  ├── Álbumes (Albums)         -> [Track List] -> [Now Playing]
  ├── Canciones (Songs)        -> [Now Playing]
  ├── Listas (Playlists)       -> [Track List] -> [Now Playing]
- ├── Cover Flow (Modo Horizontal / Landscape 3D)
  └── Ahora Suena (Now Playing) -> [Condicional: Visible si PlaybackStatus != STOPPED]
 ```
 
