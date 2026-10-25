@@ -29,6 +29,12 @@ class IpodScreenView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        invalidate()
+    }
+
+
     interface TouchInteractionListener {
         fun onItemClick(index: Int)
         fun onBackClick()
@@ -50,7 +56,8 @@ class IpodScreenView @JvmOverloads constructor(
     private var selectedIndex: Int = 0
     private var canGoBack: Boolean = false
     private var isDarkMode: Boolean = false
-
+    private var textScaleFactor: Float = 1.0f
+    private var backButtonTitle: String = "Library"
     private var trackTitle: String = "Feel Good, Inc."
     private var artistName: String = "Gorillaz"
     private var albumName: String = "Demon Days"
@@ -143,13 +150,24 @@ class IpodScreenView @JvmOverloads constructor(
         return bmp
     }
 
+    private fun ellipsizeText(paint: Paint, text: String, maxWidth: Float): String {
+        if (paint.measureText(text) <= maxWidth) return text
+        var truncated = text
+        while (truncated.isNotEmpty() && paint.measureText("$truncated…") > maxWidth) {
+            truncated = truncated.dropLast(1)
+        }
+        return "$truncated…"
+    }
+
     fun showMenu(
         title: String,
         items: List<String>,
         selected: Int,
         battery: Int,
         backEnabled: Boolean,
-        darkMode: Boolean
+        darkMode: Boolean,
+        textScale: Float = 1.0f,
+        backButtonTitle: String = "Library"
     ) {
         currentMode = Mode.MENU
         menuTitle = title
@@ -158,6 +176,8 @@ class IpodScreenView @JvmOverloads constructor(
         batteryPercent = battery
         canGoBack = backEnabled
         isDarkMode = darkMode
+        textScaleFactor = textScale
+        this.backButtonTitle = backButtonTitle
         menuScrollY = 0f
         invalidate()
     }
@@ -175,7 +195,8 @@ class IpodScreenView @JvmOverloads constructor(
         volume: Int,
         battery: Int,
         darkMode: Boolean,
-        repeat: String = "Off"
+        repeat: String = "Off",
+        textScale: Float = 1.0f
     ) {
         currentMode = Mode.NOW_PLAYING
         trackTitle = title
@@ -192,6 +213,7 @@ class IpodScreenView @JvmOverloads constructor(
         canGoBack = true
         isDarkMode = darkMode
         repeatMode = repeat
+        textScaleFactor = textScale
         invalidate()
     }
 
@@ -222,36 +244,45 @@ class IpodScreenView @JvmOverloads constructor(
         canvas.drawLine(0f, headerH, w, headerH, separatorPaint)
 
         if (canGoBack) {
-            val backWidth = 75f * scale
-            backButtonRect.set(6f * scale, 0f, backWidth, headerH)
+            val backWidth = 130f * scale
+            backButtonRect.set(0f, 0f, backWidth, headerH * 1.5f)
             mediumTextPaint.color = Color.parseColor("#007AFF")
-            mediumTextPaint.textSize = headerH * 0.36f
+            mediumTextPaint.textSize = headerH * 0.38f
             mediumTextPaint.textAlign = Paint.Align.LEFT
-            canvas.drawText("‹ Library", 10f * scale, headerH * 0.63f, mediumTextPaint)
+            val fmBack = mediumTextPaint.fontMetrics
+            val backY = headerH / 2f - (fmBack.ascent + fmBack.descent) / 2f
+            canvas.drawText("‹ $backButtonTitle", 12f * scale, backY, mediumTextPaint)
         }
-
         semiBoldTextPaint.color = textColor
         semiBoldTextPaint.textAlign = Paint.Align.CENTER
-        semiBoldTextPaint.textSize = headerH * 0.38f
-        canvas.drawText(if (currentMode == Mode.MENU) menuTitle else "Now Playing", w / 2f, headerH * 0.63f, semiBoldTextPaint)
+        semiBoldTextPaint.textSize = headerH * 0.32f
+        val fmTitle = semiBoldTextPaint.fontMetrics
+        val titleY = headerH / 2f - (fmTitle.ascent + fmTitle.descent) / 2f
+        canvas.drawText(if (currentMode == Mode.MENU) menuTitle else "Now Playing", w / 2f, titleY, semiBoldTextPaint)
 
         val clockStr = timeFormat.format(Date())
         mediumTextPaint.color = textColor
-        mediumTextPaint.textSize = headerH * 0.28f
+        mediumTextPaint.textSize = headerH * 0.30f
         mediumTextPaint.textAlign = Paint.Align.RIGHT
+        val fmClock = mediumTextPaint.fontMetrics
+        val clockY = headerH / 2f - (fmClock.ascent + fmClock.descent) / 2f
         val batteryRight = w - 10f * scale
         val batteryWidth = 22f * scale
         val batteryHeight = 11f * scale
         val clockRight = batteryRight - batteryWidth - 6f * scale
 
-        canvas.drawText(clockStr, clockRight, headerH * 0.62f, mediumTextPaint)
+        canvas.drawText(clockStr, clockRight, clockY, mediumTextPaint)
         drawBattery(canvas, batteryRight - batteryWidth / 2f, headerH * 0.5f, batteryWidth, batteryHeight, textColor)
 
         val bodyTop = headerH + 1f
         val bodyH = h - bodyTop
 
         if (currentMode == Mode.MENU) {
-            drawMenuList(canvas, 0f, bodyTop, w, bodyH, scale, textColor, sepColor)
+            if (menuTitle == "About") {
+                drawAboutBlock(canvas, 0f, bodyTop, w, bodyH, scale, textColor)
+            } else {
+                drawMenuList(canvas, 0f, bodyTop, w, bodyH, scale, textColor, sepColor)
+            }
         } else {
             drawCenteredNowPlaying(canvas, 0f, bodyTop, w, bodyH, scale, textColor, subTextColor, lightSubTextColor, barBgColor, buttonBgColor, artColor)
         }
@@ -270,6 +301,66 @@ class IpodScreenView @JvmOverloads constructor(
         }
     }
 
+    private fun drawAboutBlock(
+        canvas: Canvas,
+        left: Float,
+        top: Float,
+        width: Float,
+        height: Float,
+        scale: Float,
+        textColor: Int
+    ) {
+        val marginX = 28f * scale
+        val startY = top + 36f * scale
+
+        semiBoldTextPaint.color = textColor
+        semiBoldTextPaint.textSize = (18f * scale) / 1.618f
+        semiBoldTextPaint.textAlign = Paint.Align.LEFT
+        canvas.drawText("Nano Player", marginX, startY, semiBoldTextPaint)
+
+        mediumTextPaint.color = Color.parseColor("#007AFF")
+        mediumTextPaint.textSize = (11.5f * scale) / 1.618f
+        mediumTextPaint.textAlign = Paint.Align.LEFT
+        canvas.drawText("v2.0 • Music-Exclusive Edition", marginX, startY + 20f * scale, mediumTextPaint)
+        val dividerY = startY + 34f * scale
+        separatorPaint.color = Color.parseColor("#E5E7EB")
+        separatorPaint.strokeWidth = 1f
+        canvas.drawLine(marginX, dividerY, width - marginX, dividerY, separatorPaint)
+
+        regularTextPaint.color = Color.parseColor("#1F2937")
+        regularTextPaint.textSize = (11.5f * scale) / 1.618f
+        regularTextPaint.textAlign = Paint.Align.LEFT
+        val paragraphs = listOf(
+            "Developed with precision by Amauris Willmore.",
+            "",
+            "A high-fidelity digital audio player built with native Kotlin and Clean Architecture. Features local MediaStore indexing, custom Canvas Aqua UI rendering, and a robust DAP audio pipeline engineered for gapless playback, audio focus, and zero layout shift."
+        )
+
+        var blockY = dividerY + 24f * scale
+        val normalLineHeight = 17f * scale
+        for (paragraph in paragraphs) {
+            if (paragraph.isEmpty()) {
+                blockY += normalLineHeight * 0.8f
+                continue
+            }
+            val words = paragraph.split(" ")
+            var currentLine = ""
+            for (word in words) {
+                val testLine = if (currentLine.isEmpty()) word else "$currentLine $word"
+                if (regularTextPaint.measureText(testLine) > (width - marginX * 2f)) {
+                    canvas.drawText(currentLine, marginX, blockY, regularTextPaint)
+                    blockY += normalLineHeight
+                    currentLine = word
+                } else {
+                    currentLine = testLine
+                }
+            }
+            if (currentLine.isNotEmpty()) {
+                canvas.drawText(currentLine, marginX, blockY, regularTextPaint)
+                blockY += normalLineHeight
+            }
+        }
+    }
     private fun drawMenuList(
         canvas: Canvas,
         left: Float,
@@ -285,8 +376,7 @@ class IpodScreenView @JvmOverloads constructor(
         val totalContentHeight = menuItems.size * itemHeight
         maxMenuScroll = max(0f, totalContentHeight - height)
         menuScrollY = menuScrollY.coerceIn(0f, maxMenuScroll)
-
-        mediumTextPaint.textSize = 14.5f * scale
+        mediumTextPaint.textSize = 19f * scale * textScaleFactor
         mediumTextPaint.textAlign = Paint.Align.LEFT
         separatorPaint.color = sepColor
 
@@ -346,41 +436,44 @@ class IpodScreenView @JvmOverloads constructor(
         val artworkBmp = loadArtworkBitmap(albumArtUri)
         if (artworkBmp != null) {
             canvas.drawBitmap(artworkBmp, null, artRect, Paint(Paint.ANTI_ALIAS_FLAG))
-        } else {
-            artBgPaint.color = artColor
-            canvas.drawRect(artRect, artBgPaint)
-            artBorderPaint.color = Color.parseColor("#CBD5E1")
+            artBorderPaint.color = Color.parseColor("#374151")
             canvas.drawRect(artRect, artBorderPaint)
+        } else {
+            // Dummy Artwork: Yellow Musical Note on Pure Black Background (#FACC15 on #000000)
+            artBgPaint.color = Color.parseColor("#000000")
+            canvas.drawRect(artRect, artBgPaint)
 
-            val halfW = artRect.width() / 2f
-            val halfH = artRect.height() / 2f
-            val qPaint = Paint().apply { style = Paint.Style.FILL }
-            qPaint.color = Color.parseColor("#0F172A")
-            canvas.drawRect(artRect.left, artRect.top, artRect.left + halfW, artRect.top + halfH, qPaint)
-            qPaint.color = Color.parseColor("#1E293B")
-            canvas.drawRect(artRect.left + halfW, artRect.top, artRect.right, artRect.top + halfH, qPaint)
-            qPaint.color = Color.parseColor("#334155")
-            canvas.drawRect(artRect.left, artRect.top + halfH, artRect.left + halfW, artRect.bottom, qPaint)
-            qPaint.color = Color.parseColor("#020617")
-            canvas.drawRect(artRect.left + halfW, artRect.top + halfH, artRect.right, artRect.bottom, qPaint)
+            val notePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.parseColor("#FACC15") // JavaScript yellow HEX
+                textSize = artRect.width() * 0.45f
+                textAlign = Paint.Align.CENTER
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            }
+            val xPos = artRect.centerX()
+            val yPos = artRect.centerY() - ((notePaint.descent() + notePaint.ascent()) / 2f)
+            canvas.drawText("♫", xPos, yPos, notePaint)
+
+            artBorderPaint.color = Color.parseColor("#374151")
+            canvas.drawRect(artRect, artBorderPaint)
         }
 
         val metaLeft = artRect.right + 16f * scale
         val metaY = artTop + artSize * 0.28f
 
         semiBoldTextPaint.color = textColor
-        semiBoldTextPaint.textSize = 15f * scale
+        semiBoldTextPaint.textSize = 18f * scale * textScaleFactor
         semiBoldTextPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText(trackTitle, metaLeft, metaY, semiBoldTextPaint)
+        val maxMetaWidth = width - marginX * 2f - artSize - 16f * scale
+        canvas.drawText(ellipsizeText(semiBoldTextPaint, trackTitle, maxMetaWidth), metaLeft, metaY, semiBoldTextPaint)
 
         regularTextPaint.color = subTextColor
-        regularTextPaint.textSize = 13f * scale
+        regularTextPaint.textSize = 14f * scale * textScaleFactor
         regularTextPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText(artistName, metaLeft, metaY + 24f * scale, regularTextPaint)
+        canvas.drawText(ellipsizeText(regularTextPaint, artistName, maxMetaWidth), metaLeft, metaY + 24f * scale, regularTextPaint)
 
         regularTextPaint.color = lightSubTextColor
-        regularTextPaint.textSize = 12f * scale
-        canvas.drawText(albumName, metaLeft, metaY + 42f * scale, regularTextPaint)
+        regularTextPaint.textSize = 13f * scale * textScaleFactor
+        canvas.drawText(ellipsizeText(regularTextPaint, albumName, maxMetaWidth), metaLeft, metaY + 44f * scale, regularTextPaint)
 
         // Scrubber Bar
         val scrubY = artRect.bottom + 18f * scale
@@ -403,7 +496,7 @@ class IpodScreenView @JvmOverloads constructor(
         }
 
         mediumTextPaint.color = subTextColor
-        mediumTextPaint.textSize = 11f * scale
+        mediumTextPaint.textSize = (11f * scale) / 1.618f
         mediumTextPaint.textAlign = Paint.Align.LEFT
         canvas.drawText(positionText, scrubberRect.left, scrubY + 22f * scale, mediumTextPaint)
         mediumTextPaint.textAlign = Paint.Align.RIGHT
@@ -430,8 +523,8 @@ class IpodScreenView @JvmOverloads constructor(
 
         // Volume & Repeat Controls
         val volY = btnCenterY + 46f * scale
-        val repeatWidth = 62f * scale
-        val repeatHeight = 32f * scale
+        val repeatWidth = 46f * scale
+        val repeatHeight = 24f * scale
         repeatButtonRect.set(width - marginX - repeatWidth, volY - repeatHeight / 2f, width - marginX, volY + repeatHeight / 2f)
 
         volumeRect.set(marginX, volY - 3.5f * scale, repeatButtonRect.left - 16f * scale, volY + 3.5f * scale)
@@ -449,10 +542,13 @@ class IpodScreenView @JvmOverloads constructor(
 
         buttonPaint.color = buttonBgColor
         canvas.drawRoundRect(repeatButtonRect, repeatHeight / 2f, repeatHeight / 2f, buttonPaint)
-        mediumTextPaint.color = textColor
-        mediumTextPaint.textSize = 11f * scale
-        mediumTextPaint.textAlign = Paint.Align.CENTER
-        canvas.drawText("⇄ $repeatMode", repeatButtonRect.centerX(), repeatButtonRect.centerY() + 3.5f * scale, mediumTextPaint)
+        val iconType = when (repeatMode) {
+            "All" -> "repeat_all"
+            "One" -> "repeat_one"
+            "Shuffle" -> "shuffle"
+            else -> "repeat_off"
+        }
+        drawRemixIconGlyph(canvas, repeatButtonRect.centerX(), repeatButtonRect.centerY(), iconType, textColor, scale * 0.9f)
     }
 
     private fun drawRemixIconGlyph(canvas: Canvas, cx: Float, cy: Float, type: String, color: Int, scale: Float) {
@@ -489,9 +585,31 @@ class IpodScreenView @JvmOverloads constructor(
                 path.close()
                 canvas.drawPath(path, p)
             }
+            "repeat_all" -> {
+                p.style = Paint.Style.STROKE
+                p.strokeWidth = 1.5f * scale
+                canvas.drawCircle(cx, cy, 5f * scale, p)
+            }
+            "repeat_one" -> {
+                p.style = Paint.Style.FILL
+                mediumTextPaint.textSize = 10f * scale
+                mediumTextPaint.textAlign = Paint.Align.CENTER
+                canvas.drawText("1", cx, cy + 3.5f * scale, mediumTextPaint)
+            }
+            "shuffle" -> {
+                p.style = Paint.Style.STROKE
+                p.strokeWidth = 1.5f * scale
+                canvas.drawLine(cx - 5f * scale, cy - 4f * scale, cx + 5f * scale, cy + 4f * scale, p)
+                canvas.drawLine(cx - 5f * scale, cy + 4f * scale, cx + 5f * scale, cy - 4f * scale, p)
+            }
+            "repeat_off" -> {
+                p.style = Paint.Style.STROKE
+                p.strokeWidth = 1.5f * scale
+                canvas.drawCircle(cx, cy, 5f * scale, p)
+                canvas.drawLine(cx - 6f * scale, cy - 6f * scale, cx + 6f * scale, cy + 6f * scale, p)
+            }
         }
     }
-
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val x = event.x
         val y = event.y

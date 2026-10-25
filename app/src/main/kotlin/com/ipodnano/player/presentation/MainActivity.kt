@@ -1,8 +1,13 @@
 package com.ipodnano.player.presentation
 
 import android.app.Activity
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.ToneGenerator
@@ -35,15 +40,42 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
         "Now Playing"
     )
 
-    private val settingsItems = listOf(
-        "Audio Quality: Lossless",
-        "SoundCheck: On",
-        "EQ Preset: Rock / Bass",
-        "Shuffle: Off",
-        "About: Nano Player v2.0"
-    )
+    private var shuffleState = false
+    private var textScaleIndex = 0
+    private val textScaleLabels = listOf("Normal", "Large", "Extra Large", "Compact")
+    private val textScaleValues = listOf(1.0f, 1.15f, 1.30f, 0.85f)
+    private var textScaleMultiplier = 1.0f
 
-    private enum class MenuLevel { ROOT, SUB_MENU, TRACKS_LIST, SETTINGS }
+    private val settingsItems: List<String>
+        get() = listOf(
+            "Audio Quality: Lossless",
+            "SoundCheck: On",
+            "Shuffle: ${if (shuffleState) "On" else "Off"}",
+            "Text Size: ${textScaleLabels[textScaleIndex]}",
+            "About"
+        )
+
+    private enum class ScreenMode { MENU, NOW_PLAYING }
+    private var screenMode = ScreenMode.MENU
+    private enum class MenuLevel { ROOT, SUB_MENU, TRACKS_LIST, SETTINGS, ABOUT }
+    private data class NavState(
+        val level: MenuLevel,
+        val title: String,
+        val items: List<String>,
+        val playlist: List<Track>,
+        val selected: Int
+    )
+    private val navStack = mutableListOf<NavState>()
+
+    private fun navigateTo(newLevel: MenuLevel, newTitle: String, newItems: List<String>, newPlaylist: List<Track>) {
+        navStack.add(NavState(menuLevel, currentMenuTitle, currentDisplayItems, currentPlaylist, selectedIndex))
+        menuLevel = newLevel
+        currentMenuTitle = newTitle
+        currentDisplayItems = newItems
+        currentPlaylist = newPlaylist
+        selectedIndex = 0
+        renderCurrentState()
+    }
     private var menuLevel = MenuLevel.ROOT
     private var currentMenuTitle = "Nano Player"
     private var currentDisplayItems = mainMenuItems
@@ -55,8 +87,17 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
     private var toneGen: ToneGenerator? = null
     private var audioManager: AudioManager? = null
     private var batteryPercent = 49
-
     private val handler = Handler(Looper.getMainLooper())
+
+    private val becomingNoisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                if (isPlaying) {
+                    togglePlayPause()
+                }
+            }
+        }
+    }
     private val progressRunnable = object : Runnable {
         override fun run() {
             if (isPlaying && mediaPlayer != null) {
@@ -76,6 +117,9 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
 
         setContentView(R.layout.activity_main)
 
@@ -85,15 +129,35 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-        checkAndRequestPermissions()
+        try {
+            registerReceiver(becomingNoisyReceiver, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
+        } catch (_: Exception) {}
 
+        checkAndRequestPermissions()
         musicRepo = MediaStoreMusicRepository(this)
         allTracks = musicRepo.getAllTracks()
         currentPlaylist = allTracks
 
         updateBatteryStatus()
+        ipodScreen = findViewById(R.id.ipod_screen)
+        ipodScreen.touchListener = this
         renderCurrentState()
+
+        Thread {
+            musicRepo.reload()
+            val loaded = musicRepo.getAllTracks()
+            if (loaded.isNotEmpty()) {
+                runOnUiThread {
+                    allTracks = loaded
+                    if (currentPlaylist.size <= 1) {
+                        currentPlaylist = allTracks
+                    }
+                    renderCurrentState()
+                }
+            }
+        }.start()
     }
+
 
     private fun checkAndRequestPermissions() {
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -129,14 +193,22 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
         ipodScreen = findViewById(R.id.ipod_screen)
         ipodScreen.touchListener = this
 
-        if (menuLevel == MenuLevel.ROOT || menuLevel == MenuLevel.SUB_MENU || menuLevel == MenuLevel.TRACKS_LIST || menuLevel == MenuLevel.SETTINGS) {
+        if (screenMode == ScreenMode.NOW_PLAYING) {
+            updateCurrentScreenView()
+            return
+        }
+
+        if (menuLevel == MenuLevel.ROOT || menuLevel == MenuLevel.SUB_MENU || menuLevel == MenuLevel.TRACKS_LIST || menuLevel == MenuLevel.SETTINGS || menuLevel == MenuLevel.ABOUT) {
+            val backTitle = if (navStack.isNotEmpty()) navStack.last().title else "Library"
             ipodScreen.showMenu(
                 title = currentMenuTitle,
                 items = currentDisplayItems,
                 selected = selectedIndex,
                 battery = batteryPercent,
-                backEnabled = menuLevel != MenuLevel.ROOT,
-                darkMode = false
+                backEnabled = navStack.isNotEmpty(),
+                darkMode = false,
+                textScale = textScaleMultiplier,
+                backButtonTitle = backTitle
             )
         } else {
             updateCurrentScreenView()
@@ -178,7 +250,8 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
             volume = vol,
             battery = batteryPercent,
             darkMode = false,
-            repeat = repeatModeState
+            repeat = repeatModeState,
+            textScale = textScaleMultiplier
         )
     }
 
@@ -197,38 +270,41 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
                 when (index) {
                     0 -> {
                         // Music
-                        menuLevel = MenuLevel.TRACKS_LIST
-                        currentMenuTitle = "Music"
-                        currentPlaylist = allTracks
-                        currentDisplayItems = allTracks.map { "${it.title} - ${it.artist}" }
-                        selectedIndex = 0
-                        renderCurrentState()
+                        navigateTo(
+                            MenuLevel.TRACKS_LIST,
+                            "Music",
+                            allTracks.map { "${it.title} - ${it.artist}" },
+                            allTracks
+                        )
                     }
                     1 -> {
                         // Artists
-                        menuLevel = MenuLevel.SUB_MENU
-                        currentMenuTitle = "Artists"
                         val artists = musicRepo.getArtists()
-                        currentDisplayItems = if (artists.isNotEmpty()) artists else listOf("No artists found")
-                        selectedIndex = 0
-                        renderCurrentState()
+                        navigateTo(
+                            MenuLevel.SUB_MENU,
+                            "Artists",
+                            if (artists.isNotEmpty()) artists else listOf("No artists found"),
+                            currentPlaylist
+                        )
                     }
                     2 -> {
                         // Albums
-                        menuLevel = MenuLevel.SUB_MENU
-                        currentMenuTitle = "Albums"
                         val albums = musicRepo.getAlbums()
-                        currentDisplayItems = if (albums.isNotEmpty()) albums else listOf("No albums found")
-                        selectedIndex = 0
-                        renderCurrentState()
+                        navigateTo(
+                            MenuLevel.SUB_MENU,
+                            "Albums",
+                            if (albums.isNotEmpty()) albums else listOf("No albums found"),
+                            currentPlaylist
+                        )
                     }
                     3 -> {
                         // Settings
-                        menuLevel = MenuLevel.SETTINGS
-                        currentMenuTitle = "Settings"
-                        currentDisplayItems = settingsItems
-                        selectedIndex = 0
-                        renderCurrentState()
+                        navigateTo(
+                            MenuLevel.SETTINGS,
+                            "Settings",
+                            settingsItems,
+                            currentPlaylist
+                        )
                     }
                     4 -> {
                         // Now Playing
@@ -242,30 +318,51 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
                 }
             }
             MenuLevel.SETTINGS -> {
-                Toast.makeText(this, settingsItems[index], Toast.LENGTH_SHORT).show()
+                if (index == 2) {
+                    shuffleState = !shuffleState
+                    currentDisplayItems = settingsItems
+                    renderCurrentState()
+                } else if (index == 3) {
+                    textScaleIndex = (textScaleIndex + 1) % textScaleLabels.size
+                    textScaleMultiplier = textScaleValues[textScaleIndex]
+                    currentDisplayItems = settingsItems
+                    renderCurrentState()
+                    Toast.makeText(this, "Text Size: ${textScaleLabels[textScaleIndex]}", Toast.LENGTH_SHORT).show()
+                } else if (index == 4) {
+                    navigateTo(
+                        MenuLevel.ABOUT,
+                        "About",
+                        emptyList(),
+                        currentPlaylist
+                    )
+                } else {
+                    Toast.makeText(this, settingsItems[index], Toast.LENGTH_SHORT).show()
+                }
             }
             MenuLevel.SUB_MENU -> {
                 if (currentMenuTitle == "Artists") {
                     val artists = musicRepo.getArtists()
                     if (index in artists.indices) {
                         val artist = artists[index]
-                        menuLevel = MenuLevel.TRACKS_LIST
-                        currentMenuTitle = artist
-                        currentPlaylist = musicRepo.getTracksByArtist(artist)
-                        currentDisplayItems = currentPlaylist.map { "${it.title} - ${it.artist}" }
-                        selectedIndex = 0
-                        renderCurrentState()
+                        val tracks = musicRepo.getTracksByArtist(artist)
+                        navigateTo(
+                            MenuLevel.TRACKS_LIST,
+                            artist,
+                            tracks.map { "${it.title} - ${it.artist}" },
+                            tracks
+                        )
                     }
                 } else if (currentMenuTitle == "Albums") {
                     val albums = musicRepo.getAlbums()
                     if (index in albums.indices) {
                         val album = albums[index]
-                        menuLevel = MenuLevel.TRACKS_LIST
-                        currentMenuTitle = album
-                        currentPlaylist = musicRepo.getTracksByAlbum(album)
-                        currentDisplayItems = currentPlaylist.map { "${it.title} - ${it.artist}" }
-                        selectedIndex = 0
-                        renderCurrentState()
+                        val tracks = musicRepo.getTracksByAlbum(album)
+                        navigateTo(
+                            MenuLevel.TRACKS_LIST,
+                            album,
+                            tracks.map { "${it.title} - ${it.artist}" },
+                            tracks
+                        )
                     }
                 }
             }
@@ -275,20 +372,25 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
                     playCurrentTrack()
                 }
             }
+            MenuLevel.ABOUT -> {}
         }
     }
 
     override fun onBackClick() {
         playClickSound()
-        when (menuLevel) {
-            MenuLevel.TRACKS_LIST, MenuLevel.SUB_MENU, MenuLevel.SETTINGS -> {
-                menuLevel = MenuLevel.ROOT
-                currentMenuTitle = "Nano Player"
-                currentDisplayItems = mainMenuItems
-                selectedIndex = 0
-                renderCurrentState()
-            }
-            MenuLevel.ROOT -> {}
+        if (screenMode == ScreenMode.NOW_PLAYING) {
+            screenMode = ScreenMode.MENU
+            renderCurrentState()
+            return
+        }
+        if (navStack.isNotEmpty()) {
+            val prev = navStack.removeAt(navStack.size - 1)
+            menuLevel = prev.level
+            currentMenuTitle = prev.title
+            currentDisplayItems = prev.items
+            currentPlaylist = prev.playlist
+            selectedIndex = prev.selected
+            renderCurrentState()
         }
     }
 
@@ -337,17 +439,45 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
             Toast.makeText(this, "No tracks available", Toast.LENGTH_SHORT).show()
             return
         }
+        screenMode = ScreenMode.NOW_PLAYING
         updateCurrentScreenView()
+    }
+
+    private fun requestAudioFocus(): Boolean {
+        audioManager?.let { am ->
+            val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val playbackAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .build()
+                val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                    .setAudioAttributes(playbackAttributes)
+                    .build()
+                am.requestAudioFocus(focusRequest)
+            } else {
+                @Suppress("DEPRECATION")
+                am.requestAudioFocus({ focusChange ->
+                    if (focusChange <= AudioManager.AUDIOFOCUS_LOSS) {
+                        if (isPlaying) togglePlayPause()
+                    }
+                }, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
+            }
+            return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        }
+        return true
     }
 
     private fun playCurrentTrack() {
         if (currentPlaylist.isEmpty()) return
+        screenMode = ScreenMode.NOW_PLAYING
         val track = currentPlaylist[currentTrackIndex]
         try {
             mediaPlayer?.release()
+            requestAudioFocus()
             mediaPlayer = if (track.sourceUri.isNotBlank()) {
                 MediaPlayer().apply {
                     setDataSource(applicationContext, android.net.Uri.parse(track.sourceUri))
+                    setOnCompletionListener { playNextTrack() }
                     prepare()
                     start()
                 }
@@ -386,7 +516,7 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
     private fun playNextTrack() {
         playClickSound()
         if (currentPlaylist.isEmpty()) return
-        currentTrackIndex = if (repeatModeState == "Shuffle") {
+        currentTrackIndex = if (shuffleState || repeatModeState == "Shuffle") {
             (0 until currentPlaylist.size).random()
         } else {
             (currentTrackIndex + 1) % currentPlaylist.size
@@ -410,6 +540,9 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacks(progressRunnable)
+        try {
+            unregisterReceiver(becomingNoisyReceiver)
+        } catch (_: Exception) {}
         try {
             mediaPlayer?.release()
             toneGen?.release()

@@ -14,7 +14,18 @@ class MediaStoreMusicRepository(
     private val cachedTracks = mutableListOf<Track>()
 
     init {
-        reload()
+        cachedTracks.add(
+            Track(
+                id = 1L,
+                title = "Feel Good Inc. (Demo)",
+                artist = "Gorillaz",
+                album = "Demon Days",
+                durationMs = 222000L,
+                sourceUri = "",
+                albumArtUri = null,
+                trackNumber = 6
+            )
+        )
     }
 
     fun reload() {
