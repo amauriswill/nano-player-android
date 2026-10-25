@@ -74,6 +74,7 @@ class MainActivity : Activity(), IpodScreenView.TouchInteractionListener {
         currentDisplayItems = newItems
         currentPlaylist = newPlaylist
         selectedIndex = 0
+        screenMode = ScreenMode.MENU
         renderCurrentState()
     }
     private var menuLevel = MenuLevel.ROOT
