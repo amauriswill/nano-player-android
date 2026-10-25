@@ -1,1 +1,0 @@
-com.ipodnano.player.shared

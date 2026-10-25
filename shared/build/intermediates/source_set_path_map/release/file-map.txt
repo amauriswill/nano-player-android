@@ -1,9 +1,0 @@
-com.ipodnano.player.shared-pngs-0 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\build\generated\res\pngs\release
-com.ipodnano.player.shared-resValues-1 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\build\generated\res\resValues\release
-com.ipodnano.player.shared-mergeReleaseResources-2 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\build\intermediates\incremental\release\mergeReleaseResources\merged.dir
-com.ipodnano.player.shared-mergeReleaseResources-3 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\build\intermediates\incremental\release\mergeReleaseResources\stripped.dir
-com.ipodnano.player.shared-merged_res-4 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\build\intermediates\merged_res\release
-com.ipodnano.player.shared-androidMain-5 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\src\androidMain\res
-com.ipodnano.player.shared-androidRelease-6 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\src\androidRelease\res
-com.ipodnano.player.shared-main-7 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\src\main\res
-com.ipodnano.player.shared-release-8 C:\Users\Amauris Willmore\Documents\ipod-nano-android\shared\src\release\res
